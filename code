@@ -1,0 +1,609 @@
+# atribuicoes
+janela = Window(767, 472)
+teclado = Keyboard()
+mouse = Mouse()
+
+background = GameImage("background.png")
+background_2 = GameImage("background2.png")
+janela.set_title("Space Invaders, Vinicius Valle e Matheus Lopes")
+menu = GameImage("menu2.png")
+
+# variavéis
+
+GAMESTATE = 0
+vida = 3
+defesa =  0
+speed = 200
+enemy_speed = speed/2
+boss_speed = speed
+level = 1
+wave = 2
+onda = 3
+enemies = []
+bullets = []
+hitsLevados = 0
+pontuacao = 0
+bossTime = False
+isBossAlive = True
+ataqueDoJogador = 1
+hpDosInimigos = 3
+hpDoBoss = 15
+
+
+player = Sprite("player1.3.png")
+start = Sprite("start.png")
+back = Sprite("back.png")
+boss = Sprite("boss.png", 2)
+level1 = Sprite("level1.png")
+level2 = Sprite("level2.png")
+level3 = Sprite("level3.png")
+level4 = Sprite("level4.png")
+youwin = Sprite("youwin.png")
+youlose = Sprite("youlose.png")
+menu2 = GameImage ("MENU.png")
+loadingscreen = GameImage ("loadingscreen.png")
+TITLE = Sprite("TITLE.png")
+tipos = GameImage("tipos.png")
+tiposbotao = Sprite ("TYPES POKEMON.png")
+exit = Sprite ("exit.png")
+enemy_shoot_delay = 1
+
+# musicas
+themesong = Sound("theme_song.ogg")
+battlesong = Sound("battle song.ogg")
+
+
+
+
+boss.shoot_delay = 0.5
+boss.shoot_tick = boss.shoot_delay
+boss.direction = [0, 1]
+deathtime = 0
+
+player.shoot_delay = 1
+player.shoot_tick = player.shoot_delay
+player.shoot_delay = 1
+player.direction = [0, -1]
+
+
+"""
+-----
+EXTRAS
+-----
+"""
+
+
+
+def positions():
+    player.set_position(janela.width/2 - player.width/2, janela.height - player.height)
+    start.set_position(janela.width/2 - start.width/2, janela.height/2 - start.height + 100)
+    TITLE.set_position(150 , 60)
+    boss.set_position(0, 40)
+    level1.set_position(janela.width/2 - level1.width/2, janela.height/2 - level1.height/2 - 50)
+    level2.set_position(janela.width/2 - level2.width/2, janela.height/2 - level2.height/2 - 50)
+    level3.set_position(janela.width/2 - level3.width/2, janela.height/2 - level3.height/2 - 50)
+    level4.set_position(janela.width/2 - level4.width/2, janela.height/2 - level4.height/2 - 50)
+    youwin.set_position(janela.width/2 - youwin.width/2, janela.height/2 - youwin.height/2)
+    youlose.set_position(janela.width/2 - youlose.width/2, janela.height/2 - youlose.height/2)
+    tiposbotao.set_position(130, 340)
+    back.set_position(620, 430)
+    exit.set_position(360, 420)
+
+
+
+
+"""
+DESENHANDO SPRITES
+"""
+def drawSprites():
+    player.draw()
+    for b in bullets:
+        b.draw()
+
+def drawEnemies():
+    for i in range(len(enemies)):
+        if enemies[i].alive is True:
+            enemies[i].draw()
+            enemies[i].update()
+
+def drawBoss():
+        boss.set_total_duration(1000)
+        boss.draw()
+        boss.update()
+
+"""
+-----------
+CONTROLADORES
+-----------
+"""
+def inicializacao():
+    global GAMESTATE
+    primeiraVez()
+    positions()
+    GAMESTATE = 1
+
+def loadingLogic():
+    global GAMESTATE
+    global menutime
+    global hitsLevados
+    battlesong.stop()
+    themesong.stop()
+    battlesong.play()
+
+
+    menutime = janela.time_elapsed()
+    controleDeFase()
+    positions()
+    hitsLevados = 0
+    GAMESTATE = 4
+
+def tiposdepokemon():
+    global GAMESTATE
+    tipos.draw()
+    if (teclado.key_pressed("esc")):
+        GAMESTATE = 0
+
+def waitingLogic():
+    global GAMESTATE
+    del bullets[:]
+    if level == 1:
+        loadingscreen.draw()
+        level1.draw()
+    elif level == 2:
+        loadingscreen.draw()
+        level2.draw()
+    elif level == 3:
+        loadingscreen.draw()
+        level3.draw()
+    else:
+        loadingscreen.draw()
+        level4.draw()
+
+    if janela.time_elapsed() > menutime + 3000:
+        GAMESTATE = 5
+
+"""
+------------
+CONTROLADORES DOS INIMIGOS
+------------
+"""
+def primeiraVez():
+    global enemies
+    if level is 1:
+        enemies = waveEnemy(wave, onda)
+
+def controleDeFase():
+    global enemies
+    global bossTime
+    global enemy_speed
+
+    enemy_speed = speed/2
+
+    if level < 4:
+        enemies = waveEnemy(wave, onda)
+    else:
+        bossTime = True
+"""
+----
+MENUS
+----
+"""
+def menuLogic():
+    global GAMESTATE
+    global menutime
+    battlesong.stop()
+    themesong.play()
+    menutime = janela.time_elapsed()
+    menu2.draw()
+    start.draw()
+    TITLE.draw()
+    tiposbotao.draw()
+    exit.draw()
+
+
+    if Mouse.is_over_object(mouse, start):
+        if Mouse.is_button_pressed(mouse, 1):
+            GAMESTATE = 2
+            janela.clear()
+    if Mouse.is_over_object(mouse, tiposbotao):
+        if Mouse.is_button_pressed(mouse, 1):
+            GAMESTATE = 0.1
+            janela.clear()
+    if Mouse.is_over_object(mouse, exit):
+        if Mouse.is_button_pressed(mouse, 1):
+            janela.close()
+
+
+def escolha():
+    global player
+    global GAMESTATE
+    global level
+    global vida
+    global ataqueDoJogador
+
+    menu.draw()
+    back.draw()
+    if Mouse.is_over_object(mouse, back):
+        if Mouse.is_button_pressed(mouse, 1):
+            GAMESTATE = 0
+            janela.clear()
+
+    if (teclado.key_pressed("c")):
+        player = Sprite("player2.3.png")
+        GAMESTATE = 3
+        level = 4
+        player.shoot_delay = 0.25
+        player.shoot_tick = player.shoot_delay
+        player.direction = [0, -1]
+        ataqueDoJogador *= 2
+    if (teclado.key_pressed("b")):
+        player = Sprite("player1.3.png")
+        GAMESTATE = 3
+        player.shoot_delay = 0.8
+        player.shoot_tick = player.shoot_delay
+        player.direction = [0, -1]
+        ataqueDoJogador *= 1
+    if (teclado.key_pressed("v")):
+        player = Sprite("player3.3.png")
+        GAMESTATE = 3
+        player.shoot_delay = 0.6
+        player.shoot_tick = player.shoot_delay
+        player.direction = [0, -1]
+        ataqueDoJogador *= 3
+    return player
+
+def gameLogic(player):
+    global menutime
+    global GAMESTATE
+    global vida
+    global pontuacao
+    menutime = janela.time_elapsed()
+    player.shoot_tick += janela.delta_time()
+    janela.set_background_color((0,0,0))
+
+    if level < 3:
+        background.draw()
+    else:
+        background_2.draw()
+
+    if bossTime and isBossAlive:
+        boss.shoot_tick += janela.delta_time()
+        bossMove()
+        bossShots()
+        colisaoBoss()
+        drawBoss()
+        janela.draw_text(str(100 - hitsLevados * 5), boss.x + boss.width/2 - 10, boss.y, 20, (255, 255, 255),"Lucida Console Regular")
+    else:
+        for e in range(len(enemies)):
+            enemies[e].shoot_tick += janela.delta_time()
+        moveEnemy()
+        shootEnemy()
+        colisaoTiros()
+        drawEnemies()
+        isWaveDead()
+
+    playerLogic()
+    shotChecker()
+    moveBullet()
+    drawSprites()
+    janela.draw_text("VIDAS: "+str(vida), 0, 0, 30, (255, 255, 255), "Lucida Console Regular")
+    janela.draw_text("PONTUAÇÃO: "+str(pontuacao), janela.width/2 - 30, 0, 30, (255, 255, 255), "Lucida Console Regular")
+    if vida == 0:
+        GAMESTATE = -1
+    if teclado.key_pressed('esc'):
+        janela.close()
+
+def gameOver():
+    global GAMESTATE
+
+    if not isBossAlive and vida > 0:
+        menu2.draw()
+        youwin.draw()
+    else:
+        menu2.draw()
+        youlose.draw()
+    janela.draw_text("FINAL SCORE:" + str(pontuacao), 150, 200, 50,(255, 255, 255), "Lucida Console Regular", True)
+
+    if teclado.key_pressed("esc"):
+            GAMESTATE = -2
+
+def restart():
+    global vida
+    global enemy_speed
+    global speed
+    global wave
+    global onda
+    global hitsLevados
+    global bossTime
+    global isBossAlive
+    global pontuacao
+    global level
+    global boss_speed
+    global GAMESTATE
+
+
+    pontuacao = 0
+    vida = 3
+    enemy_speed = speed/2
+    boss_speed = speed
+    level = 4
+    wave = 2
+    onda = 3
+    del enemies[:]
+    del bullets[:]
+    hitsLevados = 0
+    bossTime = False
+    isBossAlive = True
+    GAMESTATE = 0
+
+
+"""
+-----
+LOGICA DOS OBJECTOS
+-----
+"""
+def playerLogic():
+    player.move_key_x(speed*janela.delta_time())
+    if player.x <= 0:
+        player.x = 0
+    if player.x + player.width >= janela.width:
+        player.x = janela.width - player.width
+
+
+def waveEnemy(lin, col):
+    enemiesList = []
+    for i in range(lin):
+        for j in range(col):
+            enemy = Sprite("teamrocket.png")
+            enemy.set_total_duration(1000)
+            enemy.set_position(j * enemy.width * 1.2, i * enemy.height * 1.2 + 40)
+            enemy.alive = True
+            enemy.direction = [0, 1]
+            enemy.shoot_delay = enemy_shoot_delay
+            enemy.shoot_tick = 0
+            enemy.permissao = False
+            enemiesList.append(enemy)
+    return enemiesList
+
+"""
+-----------
+MOVIMENTAÇÃO DOS INIMIGOS
+-----------
+"""
+def moveEnemy():
+    global enemy_speed
+    for i in range(len(enemies)):
+        futurePosition = enemies[i].x + (enemy_speed * janela.delta_time())
+        if futurePosition + enemies[i].width >= janela.width:
+            for j in range(len(enemies)):
+                enemies[j].y += 10
+            enemy_speed *= -1.01
+        elif futurePosition <= 0:
+            for j in range(len(enemies)):
+                enemies[j].y += 10
+            enemy_speed *= -1.01
+        else:
+            enemies[i].x = futurePosition
+
+def shootEnemy():
+    for e in range(len(enemies)):
+        if enemies[e].shoot_tick > enemies[e].shoot_delay:
+            tiro = 4
+            shoot(enemies[e],tiro)
+            enemies[e].shoot_tick = 0
+            enemies[e].shoot_delay = randint(0, 6)
+
+def bossMove():
+    global boss
+    global boss_speed
+    futurePosition = boss.x + (boss_speed * janela.delta_time())
+    if futurePosition + boss.width >= janela.width:
+        boss.y += 10
+        boss_speed *= -1.05
+    elif futurePosition <= 0:
+        boss.y += 10
+        boss_speed *= -1.05
+    else:
+        boss.x = futurePosition
+
+def bossShots():
+    tiro = 0
+    if boss.shoot_tick > boss.shoot_delay:
+        shoot(boss,tiro)
+        boss.shoot_tick = 0
+        boss.shot_delay = uniform(0,1)
+
+"""
+----------
+CONTROLADOR DOS INIMIGOS
+----------
+"""
+def chefeEstaVivo():
+    global isBossAlive
+    global jogando
+    global GAMESTATE
+    global pontuacao
+
+    if hitsLevados >= hpDoBoss:
+        pontuacao += 500
+        isBossAlive = False
+        GAMESTATE = -1
+
+def isWaveDead():
+    global level
+    global wave
+    global GAMESTATE
+    global onda
+    if not enemies:
+        level += 1
+        wave += 1
+        onda += 1
+        GAMESTATE = 3
+
+"""
+-----------
+LOGICADABALA
+-----------
+"""
+def bullet(shooter, bullet):
+    bullet.x = shooter.x + (shooter.width/2 - bullet.width/2)
+
+    if shooter.direction[1] == -1:
+        bullet.y = shooter.y
+    elif shooter.direction[1] == 1:
+        bullet.y = (shooter.y + shooter.height - bullet.height)
+
+    bullet.direction = [0, shooter.direction[1]]
+
+def shoot(shooter,tiro):
+    shooter.shoot_tick = 0
+    if shooter.direction[1] is -1 and tiro == 1:
+        b = Sprite("attack1.png")
+    elif shooter.direction[1] is -1 and tiro == 2:
+        b = Sprite("attack2.png")
+    elif shooter.direction[1] is -1 and tiro == 3:
+        b = Sprite("attack3.png")
+    elif tiro == 0:
+       b = Sprite("attack4.png")
+    elif tiro != 1 and tiro != 2 and tiro !=3:
+        b = Sprite("teste1.png")
+    bullet(shooter, b)
+    bullets.append(b)
+
+def moveBullet():
+    for b in bullets:
+        b.move_y(400 * b.direction[1] * janela.delta_time())
+        if b.y < - b.height or b.y > janela.height + b.height:
+            bullets.remove(b)
+
+def shotChecker():
+    #Tiro do Player
+    if teclado.key_pressed("space"):
+        if player.shoot_tick > player.shoot_delay:  # Se já pode atirar
+            if player.shoot_delay == 0.25:
+                x = 2
+            if player.shoot_delay == 0.8:
+                x = 1
+            if player.shoot_delay == 0.6:
+                x = 3
+            tiro = x
+            shoot(player,tiro)
+    for e in enemies:
+        e.shoot_tick += janela.delta_time()
+
+def colisaoBoss():
+    global boss
+    global isBossAlive
+    global isBossAlive
+    global hitsLevados
+    global pontuacao
+    global GAMESTATE
+    global vida
+    global deathtime
+
+    for b in bullets:
+        if b.direction[1] == -1:
+            if b.collided(boss):
+                hitsLevados += 1
+                chefeEstaVivo()
+                bullets.remove(b)
+        if b.direction[1] == 1:
+            if b.collided(player):
+                deathtime = janela.time_elapsed()
+                vida -= 1
+                player.x = janela.width / 2 - player.width / 2
+
+    for b1 in bullets:
+            if b1.direction[1] == -1:  # Bullet do player
+                for b2 in bullets:
+                    if b2.direction[1] == 1:  # Bullet do enemy
+                        if b1.collided(b2):
+                            pontuacao += 5
+                            bullets.remove(b1)
+                            bullets.remove(b2)
+
+    if boss.collided(player):
+        GAMESTATE = -1
+
+def colisaoTiros():
+    global enemies
+    global vida
+    global pontuacao
+    global deathtime
+    global hitsLevados
+
+
+    if bullets:
+        for b in bullets:
+            #Colisao Tiro do Player com Inimigos
+            if b.direction[1] == -1:
+                for i in range(len(enemies)):
+                    if b.collided(enemies[i]):
+                        hitsLevados += ataqueDoJogador
+                        if hitsLevados >= hpDosInimigos:
+                            enemies[i].alive = False
+                            pontuacao += 20
+                            hitsLevados = 0
+                        bullets.remove(b)
+                        break
+            #Tira o desenho do Inimigo
+            for e in enemies:
+                if e.alive is False:
+                    enemies.remove(e)
+            #Colisao do player com o Inimigo
+            for j in range(len(enemies)):
+                if player.collided(enemies[j]):
+                    vida = 0
+            #Colisao da bala do Inimigo com o Player e Controla a morte
+            if b.direction[1] == 1:
+                if b.collided(player):
+                    deathtime = janela.time_elapsed()
+                    vida -= 1
+                    pontuacao -= 30
+                    if pontuacao < 0:
+                        pontuacao = 0
+                    player.x = janela.width/2 - player.width/2
+        #Colisao entre balas
+        for b1 in bullets:
+            if b1.direction[1] == -1:  # Bullet do player
+                for b2 in bullets:
+                    if b2.direction[1] == 1:  # Bullet do enemy
+                        if b1.collided(b2):
+                            pontuacao += 5
+                            bullets.remove(b1)
+                            bullets.remove(b2)
+        #Controla o Tempo de invunerabilidade
+
+
+
+
+
+
+
+"""
+-------
+GAMELOOP
+-------
+"""
+while True:
+    tempo = janela.time_elapsed()
+    if GAMESTATE == 0:
+        inicializacao()
+    if GAMESTATE == 0.1:
+        tiposdepokemon()
+    if GAMESTATE == 1:
+        menuLogic()
+    if GAMESTATE == 2:
+        player = escolha()
+    if GAMESTATE == 3:
+        loadingLogic()
+    if GAMESTATE == 4:
+        waitingLogic()
+    if GAMESTATE == 5:
+        gameLogic(player)
+    if GAMESTATE == -1:
+        gameOver()
+    if GAMESTATE == -2:
+        restart()
+    janela.update()
+
